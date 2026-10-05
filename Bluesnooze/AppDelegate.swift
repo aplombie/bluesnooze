@@ -9,6 +9,7 @@
 import Cocoa
 import IOBluetooth
 import LaunchAtLogin
+import os
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -17,12 +18,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @IBOutlet weak var launchAtLoginMenuItem: NSMenuItem!
 
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+    private let powerLog = Logger(subsystem: "Blueout", category: "BluetoothPower")
+    private var powerRequestGeneration = 0
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         initStatusItem()
         setLaunchAtLoginState()
         setupNotificationHandlers()
-        setBluetooth(powerOn: true)
+        setBluetooth(powerOn: true, reason: "launch")
     }
 
     // MARK: Click handlers
@@ -49,15 +52,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func onPowerDown(note: NSNotification) {
-        setBluetooth(powerOn: false)
+        let reason = note.name == NSWorkspace.willSleepNotification ? "willSleep" : "willPowerOff"
+        setBluetooth(powerOn: false, reason: reason)
     }
 
     @objc func onPowerUp(note: NSNotification) {
-        setBluetooth(powerOn: true)
+        setBluetooth(powerOn: true, reason: "didWake")
     }
 
-    private func setBluetooth(powerOn: Bool) {
+    private func setBluetooth(powerOn: Bool, reason: String) {
+        powerRequestGeneration += 1
+        let generation = powerRequestGeneration
+        let started = ProcessInfo.processInfo.systemUptime
+        let before = IOBluetoothPreferenceGetControllerPowerState()
+        powerLog.notice("event=\(reason, privacy: .public) request=\(generation) target=\(powerOn ? 1 : 0) before=\(before)")
         IOBluetoothPreferenceSetControllerPowerState(powerOn ? 1 : 0)
+
+        // A returned setter call is not proof of a state change. These bounded,
+        // read-only samples report the preference API's state, not accessory readiness.
+        // A newer sleep/wake request invalidates samples from the previous request.
+        for delay in [0.0, 0.25, 1.0, 3.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, self.powerRequestGeneration == generation else { return }
+                let observed = IOBluetoothPreferenceGetControllerPowerState()
+                let elapsed = ProcessInfo.processInfo.systemUptime - started
+                self.powerLog.notice("request=\(generation) elapsed=\(elapsed) target=\(powerOn ? 1 : 0) reported=\(observed)")
+            }
+        }
     }
 
     // MARK: UI state
