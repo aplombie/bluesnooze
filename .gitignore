@@ -1,2 +1,5 @@
 xcuserdata/
 Carthage
+
+# Private, machine-specific diagnostic handoff
+/planning/.agent/local-context.md

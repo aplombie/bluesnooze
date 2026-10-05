@@ -2,6 +2,10 @@
 
 # Bluesnooze
 
+This is a personal maintenance fork of [odlp/bluesnooze](https://github.com/odlp/bluesnooze), focused on macOS 27 sleep/wake reliability. Setup is complete; compatibility fixes have not yet been implemented or validated. See the [maintenance plan](planning/bluesnooze_plan.md).
+
+The release links and installation instructions below refer to **upstream Bluesnooze**, not a release of this fork.
+
 [Download the latest release][download-latest] or install via Homebrew:
 
 ```sh
