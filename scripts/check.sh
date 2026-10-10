@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 scripts/check-private-files.py --staged
+python3 scripts/check-private-files.py --history HEAD
 check_dir=$(mktemp -d "${TMPDIR:-/tmp}/procaine-check.XXXXXX")
 export CLANG_MODULE_CACHE_PATH="$check_dir/module-cache"
 export SWIFT_MODULECACHE_PATH="$check_dir/module-cache"

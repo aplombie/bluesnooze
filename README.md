@@ -58,7 +58,7 @@ open Procaine.xcodeproj
 The check script runs hardware-free policy tests and builds an ad-hoc-signed
 universal app. It does not install or launch the app or toggle Bluetooth.
 
-See the [release checklist](planning/release-checklist.md) before replacing an
+See the [release checklist](docs/release-checklist.md) before replacing an
 installed copy, notarizing, or publishing. Disable Bluesnooze's login item and quit
 it before an approved replacement. The new app identity may require Bluetooth
 permission again; enable Procaine's own login item after installation.

@@ -1,0 +1,13 @@
+name: Private path guard
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  private-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 scripts/check-private-files.py --staged
+      - run: python3 scripts/check-private-files.py --history HEAD

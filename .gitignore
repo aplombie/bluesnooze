@@ -1,8 +1,14 @@
 xcuserdata/
 Carthage
 
-# Private, machine-specific diagnostic handoff
-/planning/.agent/local-context.md
+# Local agent instructions, planning, and diagnostic notes
+AGENTS.md
+CLAUDE.md
+.agent/
+/planning/
+/.claude/
+/.codex/
+/.agents/
 
 # Local builds and signing artifacts
 .build/
