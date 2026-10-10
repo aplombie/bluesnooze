@@ -1,74 +1,70 @@
-![Bluesnooze logo](images/icon.png)
+# Procaine
 
-# Blueout
+<img src="images/procaine-icon-v02.png" width="96" alt="Procaine sleeping Bluetooth icon">
 
-Blueout is a maintenance fork of [odlp/bluesnooze](https://github.com/odlp/bluesnooze), focused on macOS 27 sleep/wake reliability. The name is chosen; application renaming and compatibility validation are pending. No Blueout release is available yet. See the [maintenance plan](planning/bluesnooze_plan.md).
+**Bluetooth sleep protection with simple everyday controls.**
 
-The release links and installation instructions below refer to **upstream Bluesnooze**, not a release of this fork.
+Procaine is a native macOS menu-bar utility and maintenance fork of
+[Bluesnooze](https://github.com/odlp/bluesnooze). Choose independent sleep actions:
+turn Bluetooth off, pause Logi Options+, or use both. Both actions start disabled;
+starting the app leaves Bluetooth unchanged.
 
-[Download the latest release][download-latest] or install via Homebrew:
+This first release is in development. No Procaine download or Homebrew cask has
+been published yet. The deployment minimum is macOS 13; that is not a claim that
+every version or Mac has been tested.
 
-```sh
-brew install bluesnooze
-```
+## Everyday controls
 
-Please note the latest release requires MacOS Monterey (12.0) or higher.
+- Toggle Bluetooth sleep control and Logi Options+ sleep control independently.
+- Bluetooth returns on wake only if Procaine turned it off for that sleep cycle.
+- Pause or resume automation without immediately changing Bluetooth.
+- See the Bluetooth power state reported by macOS and whether a change was confirmed.
+- Restore Bluetooth or Logi Options+ manually after unconfirmed restoration.
+- Open Bluetooth settings and manage launch at login.
 
-## Enjoying Bluesnooze? ❤️
+**Logi Options+ mode is experimental.** The default sandboxed build cannot stop
+the service; a local test build without App Sandbox passed stop/restore validation.
+Release security settings and actual sleep/wake checks remain pending. The intended
+action stops only the supported user background
+service, restores it on wake, and leaves Bluetooth power alone. It does not change
+Logi login preferences or control its updater. If Procaine crashes while the service
+is stopped, reopen Procaine to recover; custom controls may be unavailable until then.
+Normal Quit attempts restoration first. Sleep benefits and Watch unlock remain unverified.
 
-Perhaps you could [buy me a coffee](https://www.buymeacoffee.com/odlp) to say thanks :coffee:
+In Settings, turn off **Show menu bar icon** to hide it. Open Procaine from
+Applications or Spotlight to return to Settings, pause, or recover. If Bluesnooze
+or another Procaine copy is running, automation pauses to avoid conflicts.
 
-## About
+## Limits
 
-**Bluesnooze prevents your sleeping Mac from connecting to Bluetooth accessories.**
+- **Apple Watch unlock:** it requires Bluetooth. Sleep protection can interfere;
+  leave the Bluetooth sleep action off when you need Watch unlock. Logi-only mode
+  leaves the radio on; combined Watch behavior still needs testing.
+- Bluetooth power control uses a private macOS API. Power reports do not prove
+  accessory readiness, and no instant reconnection or battery-saving guarantee is made.
+- Procaine does not repair interference, change audio routing, unpair devices, or
+  reset Bluetooth system services. Logi control is opt-in and limited to its supported service.
+- Device shortcuts, hotkeys, and audio routing are future work, not current features.
 
-If you pair Bluetooth headphones or speakers with both your phone & Mac it can be frustrating when your sleeping Mac connects intermittently and disrupts the audio.
+## Build and check
 
-With Bluesnooze the Bluetooth connection is switched off when your Mac sleeps, and switched on when your Mac wakes.
-
-![Screenshot showing Bluesnooze in the status bar](images/screenshot.png)
-
-You might also want to check-out Whisper –  [the volume limiter for MacOS](https://apps.apple.com/gb/app/whisper-volume-limiter/id1438132944?mt=12).
-
-## Installation
-
-1. Download `Bluesnooze.zip` from the [latest release][download-latest]
-1. In Finder, open `Bluesnooze.zip` in your `Downloads` directory
-1. Drag `Bluesnooze.app` to your `Applications` directory
-1. *Optional*: Configure 'Launch at login'
-
-## Caveats
-
-- Please note this app is not compatible with the “Allow your Apple Watch to unlock your Mac” feature.
-- Unfortunately this app can't be distributed via the App Store because it uses a private API to switch Bluetooth on/off (but the release version is notarized by Apple).
-
-[download-latest]: https://github.com/odlp/bluesnooze/releases/latest
-
-## FAQs
-
-### Can you add support for selectively disconnecting certain devices?
-
-Bluesnooze is a really simple app which toggles the Bluetooth power on/off.
-Disconnecting specific devices would require a complete rewrite, and I don't
-need this functionality or the complexity it brings. Please feel free to fork &
-experiment as you like ✌️
-
-### How can I hide the Bluesnooze icon?
-
-In your terminal run the following command:
+Use Xcode with the macOS SDK. There are no third-party runtime dependencies.
 
 ```sh
-defaults write com.oliverpeate.Bluesnooze hideIcon -bool true && killall Bluesnooze
+open Procaine.xcodeproj
+./scripts/check.sh
 ```
 
-When you next relaunch the application there should be no icon in the menu bar.
+The check script runs hardware-free policy tests and builds an ad-hoc-signed
+universal app. It does not install or launch the app or toggle Bluetooth.
 
-### How can I restore the Bluesnooze icon?
+See the [release checklist](planning/release-checklist.md) before replacing an
+installed copy, notarizing, or publishing. Disable Bluesnooze's login item and quit
+it before an approved replacement. The new app identity may require Bluetooth
+permission again; enable Procaine's own login item after installation.
 
-In your terminal run the following command:
+## Attribution
 
-```sh
-defaults delete com.oliverpeate.Bluesnooze hideIcon && killall Bluesnooze
-```
-
-When you next relaunch the application it should appear in the menu bar.
+Based on Bluesnooze by Oliver Peate and its contributors. The upstream history and
+[MIT license](LICENSE) are preserved. Procaine is independently maintained and is
+not an upstream Bluesnooze release.

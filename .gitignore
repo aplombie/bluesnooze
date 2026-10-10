@@ -3,3 +3,15 @@ Carthage
 
 # Private, machine-specific diagnostic handoff
 /planning/.agent/local-context.md
+
+# Local builds and signing artifacts
+.build/
+.swiftpm/
+DerivedData/
+.build-output/
+*.xcarchive
+*.dSYM/
+*.p12
+*.p8
+*.mobileprovision
+.DS_Store
