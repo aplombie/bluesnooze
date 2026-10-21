@@ -35,6 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let restoreLogiItem = NSMenuItem(title: "Restore Logi Options+", action: #selector(restoreLogi), keyEquivalent: "")
     private var quitPending = false
     private var settingsWindow: NSWindow?
+    private var settingsContent: ProcaineSettingsContent?
     private var settingsControls: [String: NSButton] = [:]
     private var settingsStatus: NSTextField?
     private let automationItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
@@ -209,63 +210,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func showSettings() {
         if settingsWindow == nil {
-            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 450),
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 560),
                                   styleMask: [.titled, .closable, .miniaturizable], backing: .buffered, defer: false)
             window.title = "Procaine Settings"
             window.isReleasedWhenClosed = false
-            window.center()
-            let stack = NSStackView()
-            stack.orientation = .vertical
-            stack.alignment = .leading
-            stack.spacing = 12
-            stack.translatesAutoresizingMaskIntoConstraints = false
-            window.contentView!.addSubview(stack)
-            NSLayoutConstraint.activate([
-                stack.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 24),
-                stack.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: -24),
-                stack.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 24)
+            window.titlebarAppearsTransparent = true
+            let content = ProcaineSettingsContent(target: self, actions: [
+                "bluetooth": #selector(toggleBluetoothAction), "logi": #selector(toggleLogiAction),
+                "pause": #selector(togglePause), "login": #selector(settingsLoginClicked),
+                "icon": #selector(toggleMenuBarIcon), "restoreBluetooth": #selector(restoreBluetooth),
+                "restoreLogi": #selector(restoreLogi), "loginSettings": #selector(openLoginSettings),
+                "quit": #selector(quitClicked)
             ])
-            let title = NSTextField(labelWithString: "Procaine")
-            title.font = .systemFont(ofSize: 22, weight: .semibold)
-            stack.addArrangedSubview(title)
-            func checkbox(_ title: String, key: String, action: Selector) {
-                let button = NSButton(checkboxWithTitle: title, target: self, action: action)
-                settingsControls[key] = button
-                stack.addArrangedSubview(button)
-            }
-            checkbox("Turn Bluetooth off during sleep", key: "bluetooth", action: #selector(toggleBluetoothAction))
-            checkbox("Pause Logi Options+ during sleep", key: "logi", action: #selector(toggleLogiAction))
-            checkbox("Pause automation", key: "pause", action: #selector(togglePause))
-            checkbox("Launch at login", key: "login", action: #selector(settingsLoginClicked))
-            checkbox("Show menu bar icon", key: "icon", action: #selector(toggleMenuBarIcon))
-            let hint = NSTextField(wrappingLabelWithString: "When the icon is hidden, open Procaine from Applications or Spotlight to return to Settings.")
-            hint.textColor = .secondaryLabelColor
-            hint.font = .systemFont(ofSize: 12)
-            stack.addArrangedSubview(hint)
-            hint.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-            let status = NSTextField(wrappingLabelWithString: "")
-            settingsStatus = status
-            stack.addArrangedSubview(status)
-            status.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-            let recovery = NSStackView()
-            recovery.orientation = .horizontal
-            recovery.spacing = 12
-            for (title, key, action) in [("Restore Bluetooth", "restoreBluetooth", #selector(restoreBluetooth)),
-                                         ("Restore Logi Options+", "restoreLogi", #selector(restoreLogi))] {
-                let button = NSButton(title: title, target: self, action: action)
-                settingsControls[key] = button
-                recovery.addArrangedSubview(button)
-            }
-            stack.addArrangedSubview(recovery)
-            let footer = NSStackView()
-            footer.orientation = .horizontal
-            footer.spacing = 12
-            footer.addArrangedSubview(NSButton(title: "Login Items Settings…", target: self, action: #selector(openLoginSettings)))
-            footer.addArrangedSubview(NSButton(title: "Quit Procaine", target: self, action: #selector(quitClicked)))
-            stack.addArrangedSubview(footer)
+            window.contentView = content
+            settingsContent = content
+            settingsControls = content.controls
+            settingsStatus = content.status
             settingsWindow = window
+            window.center()
         }
         synchronizePause()
+        fitSettingsWindow()
         settingsWindow?.makeKeyAndOrderFront(nil)
         NSApplication.shared.activate(ignoringOtherApps: true)
     }
@@ -286,6 +251,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         settingsStatus?.stringValue = [automationItem.title, powerItem.title,
             logiStateItem.isHidden ? nil : logiStateItem.title,
             transitionItem.isHidden ? nil : transitionItem.title].compactMap { $0 }.joined(separator: "\n")
+        settingsContent?.recovery.isHidden = !automation.canRestore && !logiAutomation.canRestore
+        fitSettingsWindow()
+    }
+
+    private func fitSettingsWindow() {
+        guard let window = settingsWindow, let content = settingsContent else { return }
+        content.layoutSubtreeIfNeeded()
+        let height = ceil(content.fittingSize.height)
+        guard height > 0, abs(window.contentLayoutRect.height - height) > 1 else { return }
+        let top = window.frame.maxY
+        window.setContentSize(NSSize(width: 500, height: height))
+        window.setFrameOrigin(NSPoint(x: window.frame.minX, y: top - window.frame.height))
     }
 
     @objc private func settingsLoginClicked() { launchAtLoginClicked(launchAtLoginMenuItem) }
@@ -402,5 +379,136 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @IBAction func quitClicked(_ sender: NSMenuItem) {
         NSApplication.shared.terminate(self)
+    }
+}
+
+// Native controls over a restrained tint sampled from the app's blue-purple identity.
+final class ProcaineSettingsContent: NSView {
+    private(set) var controls: [String: NSButton] = [:]
+    let status = NSTextField(wrappingLabelWithString: "")
+    let recovery = NSStackView()
+
+    init(target: AnyObject, actions: [String: Selector]) {
+        super.init(frame: NSRect(x: 0, y: 0, width: 500, height: 560))
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 20
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(stack)
+        NSLayoutConstraint.activate([
+            widthAnchor.constraint(equalToConstant: 500),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -28),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: 24),
+            stack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -24)
+        ])
+        func fullWidth(_ view: NSView, in parent: NSStackView) {
+            parent.addArrangedSubview(view)
+            view.widthAnchor.constraint(equalTo: parent.widthAnchor).isActive = true
+        }
+        func label(_ text: String, size: CGFloat = 12, color: NSColor = .secondaryLabelColor) -> NSTextField {
+            let field = NSTextField(wrappingLabelWithString: text)
+            field.font = .systemFont(ofSize: size)
+            field.textColor = color
+            field.maximumNumberOfLines = 0
+            return field
+        }
+        func section(_ title: String) -> NSStackView {
+            let group = NSStackView()
+            group.orientation = .vertical
+            group.alignment = .leading
+            group.spacing = 14
+            fullWidth(group, in: stack)
+            let heading = label(title, size: 11)
+            heading.font = .systemFont(ofSize: 11, weight: .semibold)
+            fullWidth(heading, in: group)
+            return group
+        }
+        func checkbox(_ title: String, key: String, in group: NSStackView) {
+            let button = NSButton(checkboxWithTitle: title, target: target, action: actions[key])
+            button.font = .systemFont(ofSize: 13)
+            button.cell?.wraps = true
+            button.heightAnchor.constraint(greaterThanOrEqualToConstant: 22).isActive = true
+            controls[key] = button
+            fullWidth(button, in: group)
+        }
+        func separator() {
+            let line = NSBox()
+            line.boxType = .separator
+            fullWidth(line, in: stack)
+        }
+        let header = NSStackView()
+        header.orientation = .horizontal
+        header.spacing = 14
+        header.alignment = .centerY
+        let icon = NSImageView(image: NSImage(named: NSImage.applicationIconName) ?? NSImage())
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        NSLayoutConstraint.activate([
+            icon.widthAnchor.constraint(equalToConstant: 48),
+            icon.heightAnchor.constraint(equalToConstant: 48)
+        ])
+        header.addArrangedSubview(icon)
+        let identity = NSStackView()
+        identity.orientation = .vertical
+        identity.alignment = .leading
+        identity.spacing = 3
+        let title = label("Procaine", size: 21, color: .labelColor)
+        title.font = .systemFont(ofSize: 21, weight: .semibold)
+        identity.addArrangedSubview(title)
+        identity.addArrangedSubview(label("A little quiet while your Mac sleeps.", size: 12))
+        header.addArrangedSubview(identity)
+        stack.addArrangedSubview(header)
+
+        let sleep = section("Sleep actions")
+        checkbox("Turn Bluetooth off during sleep", key: "bluetooth", in: sleep)
+        checkbox("Pause Logi Options+ during sleep", key: "logi", in: sleep)
+        separator()
+        let general = section("General")
+        checkbox("Pause automation", key: "pause", in: general)
+        checkbox("Launch at login", key: "login", in: general)
+        checkbox("Show menu bar icon", key: "icon", in: general)
+        fullWidth(label("If hidden, open Procaine from Applications or Spotlight to return to Settings."), in: general)
+        separator()
+        let state = section("Status")
+        status.font = .systemFont(ofSize: 12)
+        status.textColor = .secondaryLabelColor
+        status.maximumNumberOfLines = 0
+        fullWidth(status, in: state)
+        recovery.orientation = .horizontal
+        recovery.spacing = 12
+        for (title, key) in [("Restore Bluetooth", "restoreBluetooth"), ("Restore Logi Options+", "restoreLogi")] {
+            let button = NSButton(title: title, target: target, action: actions[key])
+            controls[key] = button
+            recovery.addArrangedSubview(button)
+        }
+        state.addArrangedSubview(recovery)
+        recovery.isHidden = true
+        let footer = NSStackView()
+        footer.orientation = .horizontal
+        footer.spacing = 12
+        footer.addArrangedSubview(NSButton(title: "Login Items Settings…", target: target, action: actions["loginSettings"]))
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        footer.addArrangedSubview(spacer)
+        footer.addArrangedSubview(NSButton(title: "Quit Procaine", target: target, action: actions["quit"]))
+        fullWidth(footer, in: stack)
+    }
+
+    required init?(coder: NSCoder) { fatalError("Not used") }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let base = NSColor.windowBackgroundColor
+        let blue = NSColor(srgbRed: 0.16, green: 0.33, blue: 0.90, alpha: 1)
+        let violet = NSColor(srgbRed: 0.48, green: 0.31, blue: 0.88, alpha: 1)
+        let top = base.blended(withFraction: dark ? 0.17 : 0.07, of: blue) ?? base
+        let bottom = base.blended(withFraction: dark ? 0.11 : 0.045, of: violet) ?? base
+        NSGradient(starting: top, ending: bottom)?.draw(in: bounds, angle: -65)
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 }
