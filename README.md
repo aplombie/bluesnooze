@@ -1,6 +1,6 @@
 # Procaine
 
-<img src="images/procaine-icon-v02.png" width="96" alt="Procaine sleeping Bluetooth icon">
+<img src="images/procaine-icon-v03.png" width="96" alt="Procaine molecular Bluetooth icon">
 
 **Bluetooth sleep protection with simple everyday controls.**
 
@@ -16,6 +16,7 @@ every version or Mac has been tested.
 ## Everyday controls
 
 - Toggle Bluetooth sleep control and Logi Options+ sleep control independently.
+- The menu-bar mark shows molecular details when either action is selected and a simpler outline when both are off.
 - Bluetooth returns on wake only if Procaine turned it off for that sleep cycle.
 - Pause or resume automation without immediately changing Bluetooth.
 - See the Bluetooth power state reported by macOS and whether a change was confirmed.

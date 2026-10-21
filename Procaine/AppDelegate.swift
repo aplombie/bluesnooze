@@ -105,13 +105,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusMenu.insertItem(help, at: statusMenu.items.count - 1)
         for item in statusMenu.items { item.target = self }
         for item in [automationItem, powerItem, transitionItem, logiStateItem] { item.isEnabled = false }
-        if let image = NSImage(named: "procaine") {
-            image.isTemplate = true
-            statusItem.button?.image = image
-        } else {
-            statusItem.button?.image = NSImage(systemSymbolName: "moon.zzz", accessibilityDescription: "Procaine")
-        }
-        statusItem.button?.setAccessibilityLabel("Procaine Bluetooth sleep protection")
         statusItem.menu = statusMenu
     }
 
@@ -156,6 +149,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let conflict = conflictingAppIsRunning
         let radioEnabled = defaults.bool(forKey: "bluetoothSleepEnabled")
         let logiEnabled = defaults.bool(forKey: "logiSleepEnabled")
+        // The mark reflects selected sleep actions, not the current radio state.
+        // Temporary pauses and conflicts remain explicit in the status and tooltip.
+        let iconName = radioEnabled || logiEnabled ? "procaine" : "procaine-off"
+        let image = NSImage(named: iconName) ?? NSImage(
+            systemSymbolName: "moon.zzz", accessibilityDescription: "Procaine")
+        image?.isTemplate = true
+        statusItem.button?.image = image
         automationItem.title = conflict ? "Automation paused — another copy is running" :
             (defaults.bool(forKey: "automationPaused") ? "Sleep protection paused" :
                 (radioEnabled || logiEnabled ? "Sleep protection enabled" : "Choose your sleep actions below"))
@@ -197,6 +197,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         launchAtLoginMenuItem.title = service.status == .requiresApproval ? "Launch at Login — Approval Needed" : "Launch at Login"
         loginSettingsItem.isHidden = service.status != .requiresApproval && service.status != .notFound
         statusItem.button?.toolTip = "Procaine — \(automationItem.title)"
+        statusItem.button?.setAccessibilityLabel("Procaine — \(automationItem.title)")
         updateSettings()
     }
 
